@@ -1,8 +1,8 @@
+import com.intellij.ide.DataManager;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.Module;
@@ -11,21 +11,18 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ModifiableRootModel;
-import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.roots.OrderEntry;
-import com.intellij.openapi.roots.OrderRootType;
-import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.libraries.LibraryTable;
-import com.intellij.openapi.vfs.JarFileSystem;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.sun.istack.internal.NotNull;
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
+import org.jetbrains.plugins.gradle.util.GradleConstants;
+import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -51,11 +48,26 @@ public class PhoneGapInit extends AnAction {
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         Module appModule = moduleManager.findModuleByName("app");
 
-        OrderEntry[] deps  = ModuleRootManager.getInstance(appModule).getModifiableModel().getOrderEntries();
-        for(OrderEntry m : deps) {
-            if(m.getPresentableName().compareTo("cordova") == 0) {
-                event.getPresentation().setVisible(false);
+        File moduleFile = new File(appModule.getModuleFilePath());
+        File appDir = moduleFile.getParentFile();
+
+        try {
+            File buildFile = new File(appDir + "/build.gradle");
+
+            GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
+
+            List<GradleDependency> allDependencies = updater.getAllDependencies();
+
+            for(GradleDependency dependency : allDependencies) {
+                if(dependency.getGroup() != null && dependency.getGroup().compareTo("org.apache.cordova") == 0) {
+                    System.out.println("found that cordova bitch");
+                    event.getPresentation().setVisible(false);
+                } else {
+                    System.out.println("Name: " + dependency.getName() + " Version: " + dependency.getVersion() + " Group: " + dependency.getGroup());
+                }
             }
+        } catch(IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -72,30 +84,40 @@ public class PhoneGapInit extends AnAction {
                     // adding Apache Cordova as a dependency to the "app" module
                     Application application = ApplicationManager.getApplication();
                     application.runWriteAction(() -> {
-                        File cordovaJarFile = new File(project.getBasePath() + "/app/libs/cordova.jar");
-
                         ModuleManager moduleManager = ModuleManager.getInstance(project);
                         Module appModule = moduleManager.findModuleByName("app");
 
-                        ModifiableRootModel moduleRootManager = ModuleRootManager.getInstance(appModule).getModifiableModel();
-                        LibraryTable libTable = moduleRootManager.getModuleLibraryTable();
-                        Library lib = libTable.createLibrary("cordova");
+                        File moduleFile = new File(appModule.getModuleFilePath());
+                        File appDir = moduleFile.getParentFile();
 
-                        if (cordovaJarFile.exists() == false) {
-                            LOGGER.info("Could not find Cordova JAR file");
+                        try {
+                            File buildFile = new File(appDir + "/build.gradle");
+
+                            GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
+
+                            updater.insertDependency("\tcompile 'org.apache.cordova:framework:6.1.2:release@aar'");
+
+                            Files.write( buildFile.toPath(), updater.getGradleFileContents(), StandardCharsets.UTF_8 );
+
+//                            ActionManager am = ActionManager.getInstance().getInstance();
+//                            AnAction sync = am.getAction("Android.SyncProject");
+//                            sync.actionPerformed(new AnActionEvent(null, DataManager.getInstance().getDataContext(),
+//                                    ActionPlaces.UNKNOWN, new Presentation(),
+//                                    ActionManager.getInstance(), 0));
+
+                            ExternalSystemUtil.refreshProject(
+                                    project, GradleConstants.SYSTEM_ID, appDir.getPath(), false,
+                                    ProgressExecutionMode.IN_BACKGROUND_ASYNC);
+
+                            // refresh project to see changes
+                            project.getBaseDir().refresh(false, true);
+
+                            Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
+                            Notifications.Bus.notify(info);
+                            extracting = false;
+                        } catch(IOException e) {
+                            e.printStackTrace();
                         }
-                        Library.ModifiableModel libModel = lib.getModifiableModel();
-                        libModel.addRoot(VirtualFileManager.constructUrl(JarFileSystem.PROTOCOL,
-                                cordovaJarFile.getPath() + JarFileSystem.JAR_SEPARATOR), OrderRootType.CLASSES);
-                        libModel.commit();
-                        moduleRootManager.commit();
-
-                        // refresh project to see changes
-                        project.getBaseDir().refresh(false, true);
-
-                        Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
-                        Notifications.Bus.notify(info);
-                        extracting = false;
 
                     });
                 }

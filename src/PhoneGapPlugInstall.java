@@ -6,12 +6,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ModifiableRootModel;
-import com.intellij.openapi.roots.ModuleRootManager;
-import com.intellij.openapi.roots.OrderEntry;
 import com.intellij.openapi.ui.Messages;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +98,7 @@ public abstract class PhoneGapPlugInstall extends AnAction {
 
     // used to disable Install Plugin
     public void update(AnActionEvent event) {
+
         super.update(event);
 
         event.getPresentation().setVisible(false);
@@ -108,17 +108,23 @@ public abstract class PhoneGapPlugInstall extends AnAction {
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         Module appModule = moduleManager.findModuleByName("app");
 
-        ModifiableRootModel model = ModuleRootManager.getInstance(appModule).getModifiableModel();
+        File moduleFile = new File(appModule.getModuleFilePath());
+        File appDir = moduleFile.getParentFile();
 
-        if(model.getModuleLibraryTable().getLibraryByName("cordova") != null) {
-            event.getPresentation().setVisible(true);
-        }
+        try {
+            File buildFile = new File(appDir + "/build.gradle");
 
-        OrderEntry[] deps  = model.getOrderEntries();
-        for(OrderEntry m : deps) {
-            if(m.getPresentableName().compareTo("cordova") == 0) {
-                event.getPresentation().setVisible(true);
+            GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
+
+            List<GradleDependency> allDependencies = updater.getAllDependencies();
+
+            for(GradleDependency dependency : allDependencies) {
+                if(dependency.getGroup() != null && dependency.getGroup().compareTo("org.apache.cordova") == 0) {
+                    event.getPresentation().setVisible(true);
+                }
             }
+        } catch(IOException e) {
+            e.printStackTrace();
         }
     }
 

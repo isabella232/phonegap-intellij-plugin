@@ -1,10 +1,12 @@
-import com.intellij.ide.DataManager;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -12,9 +14,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.sun.istack.internal.NotNull;
-import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
 import org.jetbrains.plugins.gradle.util.GradleConstants;
-import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,15 +58,15 @@ public class PhoneGapInit extends AnAction {
 
             List<GradleDependency> allDependencies = updater.getAllDependencies();
 
-            for(GradleDependency dependency : allDependencies) {
-                if(dependency.getGroup() != null && dependency.getGroup().compareTo("org.apache.cordova") == 0) {
+            for (GradleDependency dependency : allDependencies) {
+                if (dependency.getGroup() != null && dependency.getGroup().compareTo("org.apache.cordova") == 0) {
                     System.out.println("found that cordova bitch");
                     event.getPresentation().setVisible(false);
                 } else {
                     System.out.println("Name: " + dependency.getName() + " Version: " + dependency.getVersion() + " Group: " + dependency.getGroup());
                 }
             }
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -81,23 +81,20 @@ public class PhoneGapInit extends AnAction {
 
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "PhoneGap") {
                 public void onSuccess() {
-                    // adding Apache Cordova as a dependency to the "app" module
-                    Application application = ApplicationManager.getApplication();
-                    application.runWriteAction(() -> {
-                        ModuleManager moduleManager = ModuleManager.getInstance(project);
-                        Module appModule = moduleManager.findModuleByName("app");
+                    ModuleManager moduleManager = ModuleManager.getInstance(project);
+                    Module appModule = moduleManager.findModuleByName("app");
 
-                        File moduleFile = new File(appModule.getModuleFilePath());
-                        File appDir = moduleFile.getParentFile();
+                    File moduleFile = new File(appModule.getModuleFilePath());
+                    File appDir = moduleFile.getParentFile();
 
-                        try {
-                            File buildFile = new File(appDir + "/build.gradle");
+                    try {
+                        File buildFile = new File(appDir + "/build.gradle");
 
-                            GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
+                        GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
 
-                            updater.insertDependency("\tcompile 'org.apache.cordova:framework:6.1.2:release@aar'");
+                        updater.insertDependency("\tcompile 'org.apache.cordova:framework:6.1.2:release@aar'");
 
-                            Files.write( buildFile.toPath(), updater.getGradleFileContents(), StandardCharsets.UTF_8 );
+                        Files.write(buildFile.toPath(), updater.getGradleFileContents(), StandardCharsets.UTF_8);
 
 //                            ActionManager am = ActionManager.getInstance().getInstance();
 //                            AnAction sync = am.getAction("Android.SyncProject");
@@ -105,22 +102,21 @@ public class PhoneGapInit extends AnAction {
 //                                    ActionPlaces.UNKNOWN, new Presentation(),
 //                                    ActionManager.getInstance(), 0));
 
-                            ExternalSystemUtil.refreshProject(
-                                    project, GradleConstants.SYSTEM_ID, appDir.getPath(), false,
-                                    ProgressExecutionMode.IN_BACKGROUND_ASYNC);
+                        ExternalSystemUtil.refreshProject(
+                                project, GradleConstants.SYSTEM_ID, appDir.getPath(), false,
+                                ProgressExecutionMode.IN_BACKGROUND_ASYNC);
 
-                            // refresh project to see changes
-                            project.getBaseDir().refresh(false, true);
+                        // refresh project to see changes
+                        project.getBaseDir().refresh(false, true);
 
-                            Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
-                            Notifications.Bus.notify(info);
-                            extracting = false;
-                        } catch(IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    });
+                        Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
+                        Notifications.Bus.notify(info);
+                        extracting = false;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
+
                 public void run(@NotNull ProgressIndicator progressIndicator) {
                     try {
                         Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
@@ -132,6 +128,10 @@ public class PhoneGapInit extends AnAction {
                     } catch (IOException e) {
                         LOGGER.severe("Can't unzip cordova-init for unknown reasons");
                     }
+                    Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
+                    info.expire();
+                    Notifications.Bus.notify(info);
+                    extracting = true;
                 }
             });
 

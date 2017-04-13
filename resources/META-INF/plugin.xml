@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>com.phonegap.tools.plugin</id>
   <name>PhoneGap</name>
-  <version>1.0</version>
+  <version>1.2</version>
   <vendor email="anis@adobe.com" url="http://www.phonegap.com">PhoneGap</vendor>
 
   <description><![CDATA[

@@ -81,13 +81,26 @@ public class PhoneGapInit extends AnAction {
 
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "PhoneGap") {
                 public void onSuccess() {
-                    ModuleManager moduleManager = ModuleManager.getInstance(project);
-                    Module appModule = moduleManager.findModuleByName("app");
+                    // refresh project to see changes
+                    project.getBaseDir().refresh(false, true);
+                    Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
+                    Notifications.Bus.notify(info);
+                    extracting = false;
+                }
 
-                    File moduleFile = new File(appModule.getModuleFilePath());
-                    File appDir = moduleFile.getParentFile();
-
+                public void run(@NotNull ProgressIndicator progressIndicator) {
                     try {
+                        Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
+                        info.expire();
+                        Notifications.Bus.notify(info);
+
+                        // adding cordova dependency
+                        ModuleManager moduleManager = ModuleManager.getInstance(project);
+                        Module appModule = moduleManager.findModuleByName("app");
+
+                        File moduleFile = new File(appModule.getModuleFilePath());
+                        File appDir = moduleFile.getParentFile();
+
                         File buildFile = new File(appDir + "/build.gradle");
 
                         GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
@@ -106,22 +119,7 @@ public class PhoneGapInit extends AnAction {
                                 project, GradleConstants.SYSTEM_ID, appDir.getPath(), false,
                                 ProgressExecutionMode.IN_BACKGROUND_ASYNC);
 
-                        // refresh project to see changes
-                        project.getBaseDir().refresh(false, true);
-
-                        Notification info = new Notification("PhoneGapInit", "You're rocking PhoneGap!", "PhoneGap was successfully added to your Android project", NotificationType.INFORMATION);
-                        Notifications.Bus.notify(info);
-                        extracting = false;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                public void run(@NotNull ProgressIndicator progressIndicator) {
-                    try {
-                        Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
-                        info.expire();
-                        Notifications.Bus.notify(info);
+                        // extracting cordova assets
                         extracting = true;
                         ZipUtils zipUtils = new ZipUtils();
                         zipUtils.unzip(temp.toFile(), destination, progressIndicator);

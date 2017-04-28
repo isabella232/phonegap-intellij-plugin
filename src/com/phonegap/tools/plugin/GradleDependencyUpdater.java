@@ -1,15 +1,16 @@
+package com.phonegap.tools.plugin;
+
+import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.GroovyCodeVisitor;
+import org.codehaus.groovy.ast.builder.AstBuilder;
+import org.codehaus.groovy.control.MultipleCompilationErrorsException;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-
-import org.apache.commons.io.IOUtils;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.GroovyCodeVisitor;
-import org.codehaus.groovy.ast.builder.AstBuilder;
-import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 
 /**
  * @author Lovett Li
@@ -31,14 +32,19 @@ public class GradleDependencyUpdater
 
     public GradleDependencyUpdater( File inputfile ) throws MultipleCompilationErrorsException, IOException
     {
-        this( IOUtils.toString( new FileInputStream( inputfile ), "UTF-8" ) );
+        this(new FileInputStream( inputfile ));
+
         this.file = inputfile;
     }
 
-    public GradleDependencyUpdater( String scriptContents ) throws MultipleCompilationErrorsException
-    {
-        AstBuilder builder = new AstBuilder();
-        nodes = builder.buildFromString( scriptContents );
+    public GradleDependencyUpdater(FileInputStream fis) throws  MultipleCompilationErrorsException, IOException {
+            StringBuilder sb = new StringBuilder();
+            int ch;
+            while((ch = fis.read()) != -1) {
+                sb.append((char)ch);
+            }
+            AstBuilder builder = new AstBuilder();
+            nodes = builder.buildFromString( sb.toString() );
     }
 
     public FindDependenciesVisitor insertDependency( String dependency ) throws IOException

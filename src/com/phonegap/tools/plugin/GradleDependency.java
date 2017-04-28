@@ -1,3 +1,5 @@
+package com.phonegap.tools.plugin;
+
 import java.util.Map;
 
 /**

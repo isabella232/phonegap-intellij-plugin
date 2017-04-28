@@ -1,4 +1,4 @@
-/**
+package com.phonegap.tools.plugin; /**
  * Created by anis on 9/7/16.
  */
 import com.intellij.openapi.progress.ProgressIndicator;

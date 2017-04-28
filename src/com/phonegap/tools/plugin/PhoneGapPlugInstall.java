@@ -1,3 +1,5 @@
+package com.phonegap.tools.plugin;
+
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;

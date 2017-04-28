@@ -1,4 +1,4 @@
-<idea-plugin version="2">
+<idea-plugin>
   <id>com.phonegap.tools.plugin</id>
   <name>PhoneGap</name>
   <version>1.2</version>
@@ -9,7 +9,7 @@
     ]]></description>
 
   <change-notes><![CDATA[
-      First release!.
+      Using gradle to save dependencies
     ]]>
   </change-notes>
 
@@ -21,6 +21,9 @@
   <!-- uncomment to enable plugin in all products
   <depends>com.intellij.modules.lang</depends>
   -->
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.androidstudio</depends>
+
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- Add your extensions here -->
@@ -30,9 +33,9 @@
     <!-- Add your actions here -->
     <group id="PhoneGap.Menu" text="_PhoneGap" description="PhoneGap menu" popup="true" icon="PhoneGapIcons.PHONEGAP">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
-      <action id="PhoneGap.Init" class="PhoneGapInit" text="Initialize _Project" description="Initialize a PhoneGap project" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
-      <action id="PhoneGap.PluginstallFromNpm" class="PhoneGapPlugInstallFromNpm" text="Install _Plugin from npm" description="Install PhoneGap Plugin From npm" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
-      <action id="PhoneGap.PluginstallFromDisk" class="PhoneGapPlugInstallFromDisk" text="Install _Plugin from filesystem" description="Install PhoneGap Plugin From Filesytem" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
+      <action id="PhoneGap.Init" class="com.phonegap.tools.plugin.PhoneGapInit" text="Initialize _Project" description="Initialize a PhoneGap project" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
+      <action id="PhoneGap.PluginstallFromNpm" class="com.phonegap.tools.plugin.PhoneGapPlugInstallFromNpm" text="Install _Plugin from npm" description="Install PhoneGap Plugin From npm" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
+      <action id="PhoneGap.PluginstallFromDisk" class="com.phonegap.tools.plugin.PhoneGapPlugInstallFromDisk" text="Install _Plugin from filesystem" description="Install PhoneGap Plugin From Filesytem" icon="PhoneGapIcons.PHONEGAP_ACTION"/>
     </group>
   </actions>
 </idea-plugin>

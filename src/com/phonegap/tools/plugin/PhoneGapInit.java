@@ -1,3 +1,5 @@
+package com.phonegap.tools.plugin;
+
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -5,8 +7,6 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
-import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -14,7 +14,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.sun.istack.internal.NotNull;
-import org.jetbrains.plugins.gradle.util.GradleConstants;
 
 import java.io.File;
 import java.io.IOException;
@@ -89,47 +88,40 @@ public class PhoneGapInit extends AnAction {
                 }
 
                 public void run(@NotNull ProgressIndicator progressIndicator) {
-                    try {
-                        Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
-                        info.expire();
-                        Notifications.Bus.notify(info);
-
-                        // adding cordova dependency
-                        ModuleManager moduleManager = ModuleManager.getInstance(project);
-                        Module appModule = moduleManager.findModuleByName("app");
-
-                        File moduleFile = new File(appModule.getModuleFilePath());
-                        File appDir = moduleFile.getParentFile();
-
-                        File buildFile = new File(appDir + "/build.gradle");
-
-                        GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
-
-                        updater.insertDependency("\tcompile 'org.apache.cordova:framework:6.1.2:release@aar'");
-
-                        Files.write(buildFile.toPath(), updater.getGradleFileContents(), StandardCharsets.UTF_8);
-
-//                            ActionManager am = ActionManager.getInstance().getInstance();
-//                            AnAction sync = am.getAction("Android.SyncProject");
-//                            sync.actionPerformed(new AnActionEvent(null, DataManager.getInstance().getDataContext(),
-//                                    ActionPlaces.UNKNOWN, new Presentation(),
-//                                    ActionManager.getInstance(), 0));
-
-                        ExternalSystemUtil.refreshProject(
-                                project, GradleConstants.SYSTEM_ID, appDir.getPath(), false,
-                                ProgressExecutionMode.IN_BACKGROUND_ASYNC);
-
-                        // extracting cordova assets
-                        extracting = true;
-                        ZipUtils zipUtils = new ZipUtils();
-                        zipUtils.unzip(temp.toFile(), destination, progressIndicator);
-                    } catch (IOException e) {
-                        LOGGER.severe("Can't unzip cordova-init for unknown reasons");
-                    }
                     Notification info = new Notification("PhoneGapInit", "Initializing PhoneGap", "Please be patient…", NotificationType.INFORMATION);
                     info.expire();
                     Notifications.Bus.notify(info);
-                    extracting = true;
+
+                    Application application = ApplicationManager.getApplication();
+
+                    application.runReadAction(() -> {
+
+                        try {
+                            // adding cordova dependency
+                            ModuleManager moduleManager = ModuleManager.getInstance(project);
+                            Module appModule = moduleManager.findModuleByName("app");
+
+                            File moduleFile = new File(appModule.getModuleFilePath());
+                            File appDir = moduleFile.getParentFile();
+
+                            File buildFile = new File(appDir + "/build.gradle");
+
+                            GradleDependencyUpdater updater = new GradleDependencyUpdater(buildFile);
+
+                            updater.insertDependency("\tcompile 'org.apache.cordova:framework:6.1.2:release@aar'");
+
+                            Files.write(buildFile.toPath(), updater.getGradleFileContents(), StandardCharsets.UTF_8);
+
+                            // extracting cordova assets
+                            extracting = true;
+                            ZipUtils zipUtils = new ZipUtils();
+                            zipUtils.unzip(temp.toFile(), destination, progressIndicator);
+
+                        } catch (IOException e) {
+                            LOGGER.severe("Can't unzip cordova-init for unknown reasons");
+                        }
+
+                    });
                 }
             });
 
